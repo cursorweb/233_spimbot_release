@@ -37,6 +37,7 @@ TERRITORY_DISCONNECTED_INT_MASK     = 0x2000
 
 .data
 has_bonked:              .byte 0
+has_timer:               .byte 0 # Addition
 trail_cancelled:         .byte 0
 territory_disconnected:  .byte 0
 .align 2
@@ -50,13 +51,52 @@ main:
     or      $t4, $t4, 1
     mtc0    $t4, $12
 
-    li      $t1, 0
+    li      $t1, -90
     sw      $t1, ANGLE
     li      $t1, 1
     sw      $t1, ANGLE_CONTROL
     sw      $zero, VELOCITY
 
     # YOUR CODE GOES HERE
+    li $t3, 8
+    li $t1, 10
+    sw $t1, VELOCITY
+
+turn_loop:
+    beq $t3, $0, done_turn
+    sub $t3, $t3, 1
+
+    li $t1, 90
+    sw $t1, ANGLE
+    li $t1, 0 # relative
+    sw $t1, ANGLE_CONTROL
+
+    bne $t3, 3, go_up
+    li $t1, -90
+    sw $t1, ANGLE
+    li $t1, 0
+    sw $t1, ANGLE_CONTROL
+
+go_up:
+    lw $t1, TIMER
+    # cover 10 tiles
+    li $t2, 10000
+    mul $t2, $t2, 8
+    add $t1, $t1, $t2
+    sw $t1, TIMER
+
+# while (has_timer != 0)
+wait_timer:
+    lb $t2, has_timer
+    bne $t2, $0, done_wait
+    j wait_timer
+
+done_wait:
+    sb $0, has_timer
+    j turn_loop
+
+done_turn:
+    sw $0, VELOCITY
 
 loop:
     j       loop
@@ -121,6 +161,9 @@ bonk_interrupt:
 
 timer_interrupt:
     sw      $0, TIMER_ACK
+    # Addition: timer handler
+    li      $t0, 1
+    sb      $t0, has_timer
     j       interrupt_dispatch
 
 trail_cancelled_interrupt:
