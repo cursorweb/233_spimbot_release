@@ -60,6 +60,7 @@ main:
     or      $t4, $t4, BONK_INT_MASK
     or      $t4, $t4, TRAIL_CANCELLED_INT_MASK
     or      $t4, $t4, TERRITORY_DISCONNECTED_INT_MASK
+    or      $t4, $t4, REQUEST_PUZZLE_INT_MASK
     or      $t4, $t4, 1
     mtc0    $t4, $12
 
@@ -70,26 +71,30 @@ main:
     sw      $zero, VELOCITY
 
     # YOUR CODE GOES HERE
-    li $t3, 8
+    # $s3: turns_remaining
+    li $s3, 8
     li $t1, 10
     sw $t1, VELOCITY
 
+# while (turns_remaining > 0)
 main_turn_loop:
-    beq $t3, $0, main_done_turn
-    sub $t3, $t3, 1
+    beq $s3, $0, main_done_turn
+    sub $s3, $s3, 1
 
     li $t1, 90
     sw $t1, ANGLE
     li $t1, 0
     sw $t1, ANGLE_CONTROL
 
-    bne $t3, 3, main_go_up
+    # if (turns_remaining != 3)
+    bne $s3, 3, main_turns_else
     li $t1, -90
     sw $t1, ANGLE
     li $t1, 0
     sw $t1, ANGLE_CONTROL
 
-main_go_up:
+    # else
+main_turns_else:
     lw $t1, TIMER
     # cover 10 tiles
     li $t2, 10000
@@ -99,11 +104,18 @@ main_go_up:
 
 # while (has_timer != 0)
 main_wait_timer:
+    # main function doesn't have return addy :)
     lb $t2, has_timer
     bne $t2, $0, main_done_wait
+
+    jal request_puzzle
+    move $a0, $v0
+    jal solve_puzzle
+
     j main_wait_timer
 
 main_done_wait:
+    # has_timer = 0
     sb $0, has_timer
     j main_turn_loop
 
@@ -181,226 +193,6 @@ solve_puzzle:
     lw $s1, 8($sp)
     add $sp, $sp, 12
     jr $ra
-
-#### solve() the puzzle
-# solve:
-#     # $a2 row
-#     # $a3 col
-#     # $t0 num_rows
-#     # $t1 num_cols
-#     lw $t0, 0($a0)
-#     lw $t1, 4($a0)
-
-#     bge $a2, $t0, solve_shortdone
-#     bge $a3, $t1, solve_shortdone
-#     j solve_norm
-
-# solve_shortdone:
-#     # $t2 puzzle->board
-#     sub $sp, $sp, 4
-#     sw $ra, 0($sp)
-
-#     # board_done(num_rows, num_cols, puzzle->board)
-#     addi $a2, $a0, 12
-#     move $a0, $t0
-#     move $a1, $t1
-#     jal board_done
-
-#     lw $ra, 0($sp)
-#     add $sp, $sp, 4
-#     jr $ra
-
-# solve_norm:
-#     sub $sp, $sp, 44
-#     sw $ra, 0($sp)
-#     sw $s0, 4($sp)
-#     sw $s1, 8($sp)
-#     sw $s2, 12($sp)
-#     sw $s3, 16($sp)
-#     sw $s4, 20($sp)
-#     sw $s5, 24($sp)
-#     sw $s6, 28($sp)
-#     sw $s7, 32($sp)
-#     sw $s8, 40($sp)
-
-#     # $s0 (row * num_cols + col) (char* xy)
-#     # $s1 num_colors
-#     # $s2 row
-#     # $s3 col
-#     # $s4 puzzle
-#     # $s5 next_row
-#     # $s6 (col + 1) % num_cols
-#     # $s7 actions
-#     # $s8 solution
-#     mul $s0, $a2, $t1
-#     add $s0, $s0, $a3
-#     lw $s1, 8($a0)
-#     move $s2, $a2
-#     move $s3, $a3
-#     move $s4, $a0
-
-#     # $s5 = row
-#     move $s5, $s2
-#     # $t2 = num_cols - 1
-#     sub $t2, $t1, 1
-#     # (col != num_cols - 1)
-#     bne $s3, $t2, solve_skip_rowadd
-#     # $s5 = row + 1 <=> col == num_cols - 1
-#     addi $s5, $s5, 1
-# solve_skip_rowadd:
-#     addi $s6, $s3, 1
-#     rem $s6, $s6, $t1
-
-#     move $s8, $a1
-
-# # if row != 0:
-#     beq $s2, $0, solve_else
-#     # $t1 num_cols
-#     # $t2 puzzle->board
-#     addi $t2, $a0, 12
-#     add $t3, $s0, $t2
-#     # $t3 = &puzzle->board + xy - num_cols
-#     sub $t3, $t3, $t1
-#     # $t3 = puzzle->board[xy - num_cols]
-#     lb $t3, 0($t3)
-#     # $t3 = (num_colors - ...) % num_colors
-#     # $s7 = $t3 (actions = $t3)
-#     sub $t3, $s1, $t3
-#     rem $s7, $t3, $s1
-
-#     # $t1 = solution + xy
-#     add $t1, $s8, $s0
-#     # solution[xy] = actions
-#     sb $s7, 0($t1)
-
-#     # toggle_light(row, col, puzzle, actions)
-#     move $a0, $s2
-#     move $a1, $s3
-#     move $a2, $s4
-#     move $a3, $s7
-#     jal toggle_light
-
-#     # solve(puzzle, solution, next_row, %)
-#     move $a0, $s4
-#     move $a1, $s8
-#     move $a2, $s5
-#     move $a3, $s6
-#     jal solve
-
-#     # if solve == true
-#     beq $v0, $0, solve_restorerow
-#     li $v0, 1
-#     j solve_return
-
-# solve_restorerow:
-#     # $t1 = solution + xy
-#     add $t1, $s8, $s0
-#     # solution[xy] = 0
-#     sb $0, 0($t1)
-
-#     # toggle_light(row, col, puzzle, num_colors - actions)
-#     move $a0, $s2
-#     move $a1, $s3
-#     move $a2, $s4
-#     sub $a3, $s1, $s7
-#     jal toggle_light
-
-#     move $v0, $0
-#     j solve_return
-
-# forloop stuff
-# solve_else:
-#     move $s7, $0
-# solve_for:
-#     # solution[...] = actions
-#     add $t0, $s8, $s0
-#     sb $s7, 0($t0)
-
-#     # toggle_light(row, col, puzzle, actions)
-#     move $a0, $s2
-#     move $a1, $s3
-#     move $a2, $s4
-#     move $a3, $s7
-#     jal toggle_light
-
-#     # solve(puzzle, solution, next_row, %)
-#     move $a0, $s4
-#     move $a1, $s8
-#     move $a2, $s5
-#     move $a3, $s6
-#     jal solve
-
-#     beq $v0, $0, solve_cantsolve
-#     li $v0, 1
-#     j solve_return
-
-# solve_cantsolve:
-#     # toggle_light(row, col, puzzle, num_colors - actions)
-#     move $a0, $s2
-#     move $a1, $s3
-#     move $a2, $s4
-#     sub $a3, $s1, $s7
-#     jal toggle_light
-
-#     add $t0, $s8, $s0
-#     sb $0, 0($t0)
-
-#     addi $s7, $s7, 1
-#     bge $s7, $s1, solve_done
-#     j solve_for
-
-# solve_done:
-#     move $v0, $0
-
-# solve_return:
-#     lw $ra, 0($sp)
-#     lw $s0, 4($sp)
-#     lw $s1, 8($sp)
-#     lw $s2, 12($sp)
-#     lw $s3, 16($sp)
-#     lw $s4, 20($sp)
-#     lw $s5, 24($sp)
-#     lw $s6, 28($sp)
-#     lw $s7, 32($sp)
-#     lw $s8, 40($sp)
-#     add $sp, $sp, 44
-#     jr $ra
-
-#### zero() the board
-# zero_board:
-#     # num_rows $a0
-#     # num_cols $a1
-#     # row $t0
-#     li $t0, 0
-
-# zero_board_forrow:
-#     # row >= numrows
-#     bge $t0, $a0, zero_board_rowfor
-#     # col $t1
-#     li $t1, 0
-
-# zero_board_forcol:
-#     # col >= numcols
-#     bge $t1, $a1, zero_board_colfor
-
-#     # index $t2
-#     #   row * numcols
-#     mul $t2, $t0, $a1
-#     #   row * numcols + col
-#     add $t2, $t2, $t1
-#     #   &solution[..]
-#     add $t2, $t2, $a2
-#     sb $0, 0($t2)
-
-#     addi $t1, $t1, 1
-#     j zero_board_forcol
-
-# zero_board_colfor:
-#     addi $t0, $t0, 1
-#     j zero_board_forrow
-
-# zero_board_rowfor:
-#     jr $ra
 
 ### interrupt handler
 .kdata
