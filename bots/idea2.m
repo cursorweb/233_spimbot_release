@@ -1,6 +1,5 @@
 int main() {
     enable_interrupts();
-    map = load_map();
 
     // Initialize bot
     *ANGLE = -90;
@@ -8,37 +7,10 @@ int main() {
     *VELOCITY = 0;
 
     // YOUR CODE GOES HERE
-    int turns_remaining = 8;
-    *VELOCITY = 10;
-
-    while (turns_remaining > 0) {
-        turns_remaining--;
-
-        *ANGLE = 90;
-        *ANGLE_CONTROL = 0;
-
-        if (turns_remaining != 3) {
-            // Continue at 90 degrees
-        } else {
-            *ANGLE = -90;
-            *ANGLE_CONTROL = 0;
-        }
-
-        // cover 10 tiles
-        int stop_time = *TIMER + 10000 * 8;
-        *TIMER = stop_time;
-
-        // while (has_timer == 0)
-        while (has_timer == 0) {
-            // wait for timer interrupt
-            int num = request_puzzle();
-            solve_puzzle(num);
-        }
-
-        has_timer = 0;
-    }
-
-    *VELOCITY = 0;
+    map = load_map();
+    int num = request_puzzle();
+    solve_puzzle(num);
+    move_best();
 
     while (true) {
         // idle
@@ -62,15 +34,16 @@ void move_best() {
 
         // go left to right, and then go down, and see how far you can go before hit a wall
         // find the minumum how far you can go
-        for (int i = 1; i < 30; ++i) {
+        for (int i = 0; i < 30; ++i) {
             // currx
-            if (blocked(x + i * dx, y)) break;
+            if (is_blocked(x + i * dx, y)) break;
 
             int h = 0;
-            while (!blocked(x + i * dx, y + h * dy)) h++;
+            while (!is_blocked(x + i * dx, y + h * dy)) h++;
             if (h < minh) minh = h;
 
-            int W + i;
+            // W is inclusive (steps to take)
+            int W = i;
             int H = minh;
 
             if (W * H > bestA) {
@@ -83,12 +56,13 @@ void move_best() {
         }
     }
 
-    if (bestA == 0) return;
+    // assume bestA != 0
+    // if (bestA == 0) return;
 
-    move(bestdx, 0, bestW - 1);
-    move(0, bestdy, bestH - 1);
-    move(-bestdx, 0, bestW - 1);
-    move(0, -bestdy, bestH - 2);
+    move_bot(bestdx, 0, bestW);
+    move_bot(0, bestdy, bestH - 1);
+    move_bot(-bestdx, 0, bestW);
+    move_bot(0, -bestdy, bestH - 2); // avoid trying to go too far up
 }
 
 bool is_blocked(int x, int y) {
@@ -97,7 +71,7 @@ bool is_blocked(int x, int y) {
     return (map[y * 30 + x] & 0x10) != 0;
 }
 
-void move_bot(int angle, int n) {
+void move_bot(int dx, int dy, int n) {
     *ANGLE = angle;
     *ANGLE_CONTROL = 1; // absolute
 

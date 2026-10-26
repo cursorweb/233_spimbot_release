@@ -76,63 +76,19 @@ main:
     la $t0, map
     sw $t0, SEARCH_FIELD
 
-    # $s3: turns_remaining
-    li $s3, 8
-    li $t1, 10
-    sw $t1, VELOCITY
-
-# while (turns_remaining > 0)
-main_turn_loop:
-    beq $s3, $0, main_done_turn
-    sub $s3, $s3, 1
-
-    li $t1, 90
-    sw $t1, ANGLE
-    li $t1, 0
-    sw $t1, ANGLE_CONTROL
-
-    # if (turns_remaining != 3)
-    bne $s3, 3, main_turns_else
-    li $t1, -90
-    sw $t1, ANGLE
-    li $t1, 0
-    sw $t1, ANGLE_CONTROL
-
-    # else
-main_turns_else:
-    lw $t1, TIMER
-    # cover 10 tiles
-    li $t2, 10000
-    mul $t2, $t2, 8
-    add $t1, $t1, $t2
-    sw $t1, TIMER
-
-# while (has_timer != 0)
-main_wait_timer:
-    lb $t2, has_timer
-    bne $t2, $0, main_done_wait
-
     # main function doesn't have return addy :)
     jal request_puzzle
     move $a0, $v0
     jal solve_puzzle
 
-    j main_wait_timer
-
-main_done_wait:
-    # has_timer = 0
-    sb $0, has_timer
-    j main_turn_loop
-
-main_done_turn:
-    sw $0, VELOCITY
+    jal move_best
 
 loop:
     j       loop
 
 #### move_best()
 move_best:
-    sub $sp, $sp, 36
+    sub $sp, $sp, 56
     sw $ra, 0($sp)
     sw $s0, 4($sp)
     sw $s1, 8($sp)
@@ -142,6 +98,18 @@ move_best:
     sw $s5, 24($sp)
     sw $s6, 28($sp)
     sw $s7, 32($sp)
+    sw $0, 36($sp) # bestA = 0
+    sw $0, 40($sp)
+    sw $0, 44($sp)
+    li $t0, 1
+    sw $t0, 48($sp) # bestdx = 1
+    sw $t0, 52($sp) # bestdy = 1
+
+    # 36($sp) = bestA
+    # 40($sp) = bestW
+    # 44($sp) = bestH
+    # 48($sp) = bestdx
+    # 52($sp) = bestdy
 
     # $s0: x
     # $s1: y
@@ -179,26 +147,102 @@ move_best_dir_loop:
     li $s5, 1000
 
     # $s6 i, $s0 x, $s1 y
-    li $s6, 1
+    # $s7 h
+    li $s6, 0
 move_best_i_loop:
     bge $s6, 30, move_best_i_done
 
-    # blocked(x + i * dx, y)
+    # is_blocked(x + i * dx, y)
     mul $t0, $s6, $s3
     add $a0, $s0, $t0
     move $a1, $s1
-    # if (blocked) break
+    jal is_blocked
+    # if (is_blocked(...)) break
     bne $v0, $0, move_best_i_done
 
-    
+    # while(!is_blocked(...))
+    li $s7, 0
+move_best_h_loop:
+    #   is_blocked(x + i * dx, y + h * dy)
+    mul $t0, $s6, $s3 # i * dx
+    add $a0, $t0, $s0
+    mul $t0, $s7, $s4 # h * dy
+    add $a1, $t0, $s1
+    jal is_blocked
+    #   h++
+    bne $v0, $0, move_best_h_done
+    addi $s7, $s7, 1
+    j move_best_h_loop
 
+move_best_h_done:
+    # $s7 h, $s5 minh
+    bge $s7, $s5, move_best_no_minh
+    move $s5, $s7
+move_best_no_minh:
+    # W: $s6
+    # H: $s5
+    # dx: $s3
+    # dy: $s4
+    
+    # 36($sp) = bestA
+    # 40($sp) = bestW
+    # 44($sp) = bestH
+    # 48($sp) = bestdx
+    # 52($sp) = bestdy
+    # $t0: W * H
+    mul $t0, $s6, $s5
+    lw $t1, 36($sp)
+    # if (W * H > bestA)
+    ble $t0, $t1, move_best_no_besta
+    sw $t0, 36($sp) # bestA = W * H
+    sw $s6, 40($sp) # bestW = W
+    sw $s5, 44($sp) # bestH = H
+    sw $s3, 48($sp) # bestdx = dx
+    sw $s4, 52($sp) # bestdy = dy
+move_best_no_besta:
+    # ++i
     addi $s6, $s6, 1
     j move_best_i_loop
+
 move_best_i_done:
     addi $s2, $s2, 1
     j move_best_dir_loop
 
 move_best_dir_done:
+    # Assume bestA != 0
+    # $s0: bestdx
+    # $s1: bestdy
+    # $s2: bestW
+    # $s3: bestH
+    lw $s0, 48($sp)
+    lw $s1, 52($sp)
+    lw $s2, 40($sp)
+    lw $s3, 44($sp)
+
+    
+    move 
+    li $v0, PRINT_INT
+    syscall
+
+    move $a0, $s0
+    move $a1, $0
+    move $a2, $s2
+    jal move_bot
+
+    move $a0, $0
+    move $a1, $s1
+    sub $a2, $s3, 1
+    jal move_bot
+
+    sub $a0, $0, $s0
+    move $a1, $0
+    move $a2, $s2
+    jal move_bot
+
+    move $a0, $0
+    sub $a1, $0, $s1
+    sub $a2, $s3, 2
+    jal move_bot
 
     lw $ra, 0($sp)
     lw $s0, 4($sp)
@@ -209,7 +253,7 @@ move_best_dir_done:
     lw $s5, 24($sp)
     lw $s6, 28($sp)
     lw $s7, 32($sp)
-    add $sp, $sp, 36
+    add $sp, $sp, 56
     jr $ra
 
 #### bool is_blocked(int x, int y)
@@ -258,7 +302,6 @@ move_bot_loop:
     lb $t0, has_timer
     bne $t0, $0, move_bot_return
 
-    # main function doesn't have return addy :)
     jal request_puzzle
     move $a0, $v0
     jal solve_puzzle
@@ -340,6 +383,25 @@ solve_puzzle:
     lw $s1, 8($sp)
     add $sp, $sp, 12
     jr $ra
+
+###!!! UTIL DEBUG !!!###
+print_xy:
+    li      $v0, PRINT_INT
+    syscall
+
+    li      $a0, 32
+    li      $v0, PRINT_CHAR
+    syscall
+
+    move    $a0, $a1
+    li      $v0, PRINT_INT
+    syscall
+
+    li      $a0, 10
+    li      $v0, PRINT_CHAR
+    syscall
+
+    jr      $ra
 
 ### interrupt handler
 .kdata
