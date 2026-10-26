@@ -53,7 +53,10 @@ solution:                .space 256
 puzzle_received:         .byte 0
 .align 2
 num_puzzles_requested:   .word 0
-map:                     .space 900
+map:                     .space 900 # Addition: map var
+dx:                      .byte 1 0 -1 0
+dy:                      .byte 0 1 0 -1
+dir:                     .byte 0
 
 .text
 main:
@@ -78,11 +81,16 @@ main:
 
 
 
-    # main function doesn't have return addy :)
     li $s0, 0
+    # for (int i = 0; i < 10; ++i)
 puzzle_loop:
-    bge $s0, 10, puzzle_done
+    bge $s0, 10, loop
 
+    # move_best()
+    jal move_best
+
+    # main function doesn't have return addy :)
+    # solve(request())
     jal request_puzzle
     move $a0, $v0
     jal solve_puzzle
@@ -90,16 +98,146 @@ puzzle_loop:
     addi $s0, $s0, 1
     j puzzle_loop
 
-puzzle_done:
-
-    jal move_best
-
 loop:
     j       loop
 
+
 #### move_best()
+move_best:
+    # ONLY called by main function
+    # which only uses $s0, so for simplicity only save that one
+    sub $sp, $sp, 20
+    sw $ra, 0($sp)
+    sw $s0, 4($sp)
+    
+    # $s0 x = BOT_X / 10
+    # $s1 y = BOT_Y / 10
+    # $s2 k
+    # $s3 fx
+    # $s4 fy
+    # $s5 sx
+    # $s6 sy
+    # d 8($sp)
+    # s 12($sp)
+    # b 16($sp)
+    lw $s0, BOT_X
+    div $s0, $s0, 10
+    lw $s1, BOT_Y
+    div $s1, $s1, 10
+    move $s2, $0
+
+move_best_loop:
+    bge $s2, 4, move_best_return
+
+    # d $t0 = (dir + k) % 4
+    lb $t0, dir
+    add $t0, $t0, $s2
+    andi $t0, $t0, 3
+    sw $t0, 8($sp)
+
+    # s $t1 = (d + 1) % 4
+    addi $t1, $t0, 1
+    andi $t1, $t1, 3
+    sw $t1, 12($sp)
+
+    # b $t2 = (d + 2) % 4
+    addi $t2, $t0, 2
+    andi $t2, $t2, 3
+    sw $t2, 16($sp)
+
+    lb $s3, dx($t0)
+    lb $s4, dy($t0)
+    lb $s5, dx($t1)
+    lb $s6, dy($t1)
+
+    # $s0 x = BOT_X / 10
+    # $s1 y = BOT_Y / 10
+    # $s2 k
+    # $s3 fx $s4 fy
+    # $s5 sx $s6 sy
+    # is_blocked does NOT edit $a registers
+    # so for simplicity, re-use $a registers
+    
+    # is_blocked(x + fx, y + fy)
+    add $a0, $s0, $s3
+    add $a1, $s1, $s4
+    jal is_blocked
+    bne $v0, $0, move_best_loop_incr
+
+    # is_blocked(x + 2 * fx, y + 2 * fy)
+    add $a0, $a0, $s3
+    add $a1, $a1, $s4
+    jal is_blocked
+    bne $v0, $0, move_best_loop_incr
+
+    # is_blocked(x + 2 * fx + sx, y + 2 * fy + sy)
+    add $a0, $a0, $s5
+    add $a1, $a1, $s6
+    jal is_blocked
+    bne $v0, $0, move_best_loop_incr
+
+    # is_blocked(x + 2 * fx + 2 * sx, y + 2 * fy + 2 * sy)
+    add $a0, $a0, $s5
+    add $a1, $a1, $s6
+    jal is_blocked
+    bne $v0, $0, move_best_loop_incr
+
+    # is_blocked(x + fx + 2 * sx, y + fy + 2 * sy)
+    sub $a0, $a0, $s3
+    sub $a1, $a1, $s4
+    jal is_blocked
+    bne $v0, $0, move_best_loop_incr
+
+    # d 8($sp)
+    # s 12($sp)
+    # b 16($sp)
+    # if (...)
+
+    # again, assume $a1 is not overwritten for simplicity
+    lw $a0, 8($sp)
+    # dir = d
+    sb $a0, dir
+
+    # move_bot(d * 90, 2)
+    mul $a0, $a0, 90
+    li $a1, 3
+    jal move_bot
+
+    # move_bot(s * 90, 2)
+    lw $a0, 12($sp)
+    mul $a0, $a0, 90
+    jal move_bot
+
+    # move_bot(b * 90, 2)
+    lw $a0, 16($sp)
+    mul $a0, $a0, 90
+    jal move_bot
+
+    # move_bot(((s + 2) % 4) * 90, 2)
+    lw $a0, 12($sp)
+    addi $a0, $a0, 2
+    andi $a0, $a0, 3
+    mul $a0, $a0, 90
+    jal move_bot
+
+    # move_bot(d * 90, 2)
+    lw $a0, 8($sp)
+    mul $a0, $a0, 90
+    li $a1, 1
+    jal move_bot
+
+    j move_best_return
+move_best_loop_incr:
+    addi $s2, $s2, 1
+    j move_best_loop
+move_best_return:
+    lw $ra, 0($sp)
+    lw $s0, 4($sp)
+    addi $sp, $sp, 20
+    jr $ra
 
 #### bool is_blocked(int x, int y)
+#### NOTE: NEVER EVER TOUCH THE ARGS!!
 is_blocked:
     li $v0, 1
     blt $a0, $0, is_blocked_return

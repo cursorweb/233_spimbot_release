@@ -15,30 +15,37 @@ int main() {
 
     // YOUR CODE GOES HERE
     map = load_map();
-    solve_puzzle(request_puzzle());
-    move_best();
+    for (int i = 0; i < 10; ++i) {
+        move_best();
+        solve_puzzle(request_puzzle());
+    }
 
     while (true) {
         // idle
     }
 }
 
-int dx[4] = {1, 0, -1, 0};
-int dy[4] = {0, 1, 0, -1};
-int dir = 0;
+char dx[4] = {1, 0, -1, 0};
+char dy[4] = {0, 1, 0, -1};
+char dir = 0; // 0 1 2 3
 
-inline void move_best() {
+void move_best() {
     int x = BOT_X / 10;
     int y = BOT_Y / 10;
 
     for (int k = 0; k < 4; k++) {
-        int d = (dir + k) % 4;      // forward (x % 4 == x & 3)
-        int s = (d + 1) % 4;        // sideways (clockwise)
-        int b = (d + 2) % 4;        // back
+        int d = (dir + k) % 4; // forward (x % 4 == x & 3)
+        int s = (d + 1) % 4; // sideways (clockwise)
+        int b = (d + 2) % 4; // back
 
         int fx = dx[d], fy = dy[d];
         int sx = dx[s], sy = dy[s];
 
+        /*
+        M 1 2
+        M   3
+        M 5 4
+        */
         if (!is_blocked(x + fx,          y + fy) &&
             !is_blocked(x + 2*fx,        y + 2*fy) &&
             !is_blocked(x + 2*fx + sx,   y + 2*fy + sy) &&
@@ -47,6 +54,8 @@ inline void move_best() {
             move_bot(d * 90, 2); 
             move_bot(s * 90, 2);
             move_bot(b * 90, 2);
+            move_bot(((s + 2) % 4) * 90, 2);
+            // ((s + 2) & 3) * 90
             dir = d;
             return;
         }
@@ -60,17 +69,6 @@ bool is_blocked(int x, int y) {
 }
 
 void move_bot(int angle, int n) {
-    // int angle;
-    // if (dx != 0) {
-    //     // horizontal (0 or 180)
-    //     angle = (dx > 0) ? 0 : 180;
-    //     // angle = (dx < 0) * 180;
-    // } else {
-    //     // vertical (-90 or 90)
-    //     angle = (dy > 0) ? 90 : -90;
-    //     // angle = 90 - 180 * (dy < 0);
-    // }
-
     *ANGLE = angle;
     *ANGLE_CONTROL = 1; // absolute
 
