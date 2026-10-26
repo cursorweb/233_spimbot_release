@@ -53,6 +53,7 @@ solution:                .space 256
 puzzle_received:         .byte 0
 .align 2
 num_puzzles_requested:   .word 0
+map:                     .space 900
 
 .text
 main:
@@ -71,6 +72,10 @@ main:
     sw      $zero, VELOCITY
 
     # YOUR CODE GOES HERE
+    # load map()
+    la $t0, map
+    sw $t0, SEARCH_FIELD
+
     # $s3: turns_remaining
     li $s3, 8
     li $t1, 10
@@ -104,10 +109,10 @@ main_turns_else:
 
 # while (has_timer != 0)
 main_wait_timer:
-    # main function doesn't have return addy :)
     lb $t2, has_timer
     bne $t2, $0, main_done_wait
 
+    # main function doesn't have return addy :)
     jal request_puzzle
     move $a0, $v0
     jal solve_puzzle
@@ -124,6 +129,66 @@ main_done_turn:
 
 loop:
     j       loop
+
+#### bool is_blocked(int x, int y)
+is_blocked:
+    li $v0, 1
+    blt $a0, $0, is_blocked_return
+    bge $a0, 30, is_blocked_return
+    blt $a1, $0, is_blocked_return
+    bge $a1, 30, is_blocked_return
+
+    # $t0 = y * 30 + x + map
+    la $t1, map
+    mul $t0, $a1, 30
+    add $t0, $t1, $a0
+
+    # $t1 = map[y][x]
+    lb $t1, 0($t0)
+    andi $t1, $t1, 0x10
+    
+    sne $v0, $t1, $0
+is_blocked_return:
+    jr $ra
+
+#### move_bot(int angle, int n)
+move_bot:
+    sub $sp, $sp, 4
+    sw $ra, 0($sp)
+
+    sw $a0, ANGLE
+    li $t0, 1
+    sw $t0, ANGLE_CONTROL
+
+    sb $0, has_timer
+
+    lw $t0, TIMER
+    # $a0: 10 * n
+    mul $a0, $a0, 10000
+    # $t0: TIMER * n * 10k
+    add $t0, $t0, $a0
+    sw $t0, TIMER
+
+    li $t0, 10
+    sw $t0, VELOCITY
+
+move_bot_loop:
+    lb $t0, has_timer
+    bne $t0, $0, move_bot_return
+
+    # main function doesn't have return addy :)
+    jal request_puzzle
+    move $a0, $v0
+    jal solve_puzzle
+
+    j move_bot_loop
+
+move_bot_return:
+    sw $0, VELOCITY
+
+    lw $ra, 0($sp)
+    add $sp, $sp, 4
+    jr $ra
 
 #### request_puzzle()
 request_puzzle:
