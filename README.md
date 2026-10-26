@@ -29,4 +29,17 @@
    `-randommap`
    `-randompuzzle`
 
+
+```
+   X=0 ----------------------> X=300
+   Y=0
+    |                 270 (north, up)
+    |                       |
+    |                       |
+    v        180 (west) ----+---- 0 (east, right)
+                            |
+   Y=300                    |
+                         90 (south, down)
+```
+
 5. submit your solution to PrairieLearn when you are ready :)

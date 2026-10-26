@@ -15,8 +15,7 @@ int main() {
 
     // YOUR CODE GOES HERE
     map = load_map();
-    int num = request_puzzle();
-    solve_puzzle(num);
+    solve_puzzle(request_puzzle());
     move_best();
 
     while (true) {
@@ -24,52 +23,34 @@ int main() {
     }
 }
 
-void move_best() {
-    int loc = *BASE_LOCATION;
-    // convert to tile coordinates
-    int x = (loc >> 16) / 10;
-    int y = (loc & 0xFFFF) / 10;
+int dx[4] = {1, 0, -1, 0};
+int dy[4] = {0, 1, 0, -1};
+int dir = 0;
 
-    int bestA = 0, bestW = 0, bestH = 0, bestdx = 1, bestdy = 1;
+inline void move_best() {
+    int x = BOT_X / 10;
+    int y = BOT_Y / 10;
 
-    for (int dir = 0; dir < 4; ++dir) {
-        // 10 means up = 1, right = 0
-        int dx = (dir & 1) ? -1 : 1; // 1 - 2 * (dir & 1)
-        int dy = (dir & 2) ? -1 : 1; // 1 - 2 * ((dir >> 1) & 1);
-        
-        int minh = 1000;
+    for (int k = 0; k < 4; k++) {
+        int d = (dir + k) % 4;      // forward (x % 4 == x & 3)
+        int s = (d + 1) % 4;        // sideways (clockwise)
+        int b = (d + 2) % 4;        // back
 
-        // go left to right, and then go down, and see how far you can go before hit a wall
-        // find the minumum how far you can go
-        for (int i = 0; i < 30; ++i) {
-            // currx
-            if (is_blocked(x + i * dx, y)) break;
+        int fx = dx[d], fy = dy[d];
+        int sx = dx[s], sy = dy[s];
 
-            int h = 0;
-            while (!is_blocked(x + i * dx, y + h * dy)) h++;
-            if (h < minh) minh = h;
-
-            // W is inclusive (steps to take)
-            int W = i;
-            int H = minh;
-
-            if (W * H > bestA) {
-                bestA = W * H;
-                bestW = W;
-                bestH = H;
-                bestdx = dx;
-                bestdy = dy;
-            }
+        if (!is_blocked(x + fx,          y + fy) &&
+            !is_blocked(x + 2*fx,        y + 2*fy) &&
+            !is_blocked(x + 2*fx + sx,   y + 2*fy + sy) &&
+            !is_blocked(x + 2*fx + 2*sx, y + 2*fy + 2*sy) &&
+            !is_blocked(x + fx + 2*sx,   y + fy + 2*sy)) {
+            move_bot(d * 90, 2); 
+            move_bot(s * 90, 2);
+            move_bot(b * 90, 2);
+            dir = d;
+            return;
         }
     }
-
-    // assume bestA != 0
-    // if (bestA == 0) return;
-
-    move_bot(bestdx, 0, bestW);
-    move_bot(0, bestdy, bestH - 1);
-    move_bot(-bestdx, 0, bestW);
-    move_bot(0, -bestdy, bestH - 2); // avoid trying to go too far up
 }
 
 bool is_blocked(int x, int y) {
@@ -78,17 +59,17 @@ bool is_blocked(int x, int y) {
     return (map[y * 30 + x] & 0x10) != 0;
 }
 
-void move_bot(int dx, int dy, int n) {
-    int angle;
-    if (dx != 0) {
-        // horizontal (0 or 180)
-        angle = (dx > 0) ? 0 : 180;
-        // angle = (dx < 0) * 180;
-    } else {
-        // vertical (-90 or 90)
-        angle = (dy > 0) ? 90 : -90;
-        // angle = 90 - 180 * (dy < 0);
-    }
+void move_bot(int angle, int n) {
+    // int angle;
+    // if (dx != 0) {
+    //     // horizontal (0 or 180)
+    //     angle = (dx > 0) ? 0 : 180;
+    //     // angle = (dx < 0) * 180;
+    // } else {
+    //     // vertical (-90 or 90)
+    //     angle = (dy > 0) ? 90 : -90;
+    //     // angle = 90 - 180 * (dy < 0);
+    // }
 
     *ANGLE = angle;
     *ANGLE_CONTROL = 1; // absolute

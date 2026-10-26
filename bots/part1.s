@@ -51,7 +51,7 @@ main:
     or      $t4, $t4, 1
     mtc0    $t4, $12
 
-    li      $t1, -90
+    li      $t1, -40
     sw      $t1, ANGLE
     li      $t1, 1
     sw      $t1, ANGLE_CONTROL

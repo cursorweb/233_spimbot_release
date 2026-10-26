@@ -98,169 +98,6 @@ loop:
     j       loop
 
 #### move_best()
-move_best:
-    sub $sp, $sp, 56
-    sw $ra, 0($sp)
-    sw $s0, 4($sp)
-    sw $s1, 8($sp)
-    sw $s2, 12($sp)
-    sw $s3, 16($sp)
-    sw $s4, 20($sp)
-    sw $s5, 24($sp)
-    sw $s6, 28($sp)
-    sw $s7, 32($sp)
-    sw $0, 36($sp) # bestA = 0
-    sw $0, 40($sp)
-    sw $0, 44($sp)
-    li $t0, 1
-    sw $t0, 48($sp) # bestdx = 1
-    sw $t0, 52($sp) # bestdy = 1
-
-    # 36($sp) = bestA
-    # 40($sp) = bestW
-    # 44($sp) = bestH
-    # 48($sp) = bestdx
-    # 52($sp) = bestdy
-
-    # $s0: x
-    # $s1: y
-    # $s2: dir
-    # $s3: dx
-    # $s4: dy
-    # $s5: minh
-
-    lw $t0, BASE_LOCATION
-    # $s0 = (loc >> 16) / 10
-    srl $s0, $t0, 16
-    div $s0, $s0, 10
-    # $s1 = (loc & 0xFFFF) / 10
-    andi $s1, $t0, 0xFFFF
-    div $s1, $s1, 10
-    li $s2, 0
-
-# for (int dir = 0; dir < 4; ++dir)
-move_best_dir_loop:
-    bge $s2, 4, move_best_dir_done
-
-    # $s3 dx = 1 - 2 * (dir & 1)
-    li $s3, 1
-    andi $t0, $s2, 1
-    sll $t0, $t0, 1 # $t0 *= 2
-    sub $s3, $s3, $t0
-
-    # $s4 dy = 1 - 2 * ((dir >> 1) & 1)
-    li $s4, 1
-    srl $t0, $s2, 1
-    andi $t0, $t0, 1
-    sll $t0, $t0, 1 # $t0 *= 2
-    sub $s4, $s4, $t0
-
-    li $s5, 1000
-
-    # $s6 i, $s0 x, $s1 y
-    # $s7 h
-    li $s6, 0
-move_best_i_loop:
-    bge $s6, 30, move_best_i_done
-
-    # is_blocked(x + i * dx, y)
-    mul $t0, $s6, $s3
-    add $a0, $s0, $t0
-    move $a1, $s1
-    jal is_blocked
-    # if (is_blocked(...)) break
-    bne $v0, $0, move_best_i_done
-
-    # while(!is_blocked(...))
-    li $s7, 0
-move_best_h_loop:
-    #   is_blocked(x + i * dx, y + h * dy)
-    mul $t0, $s6, $s3 # i * dx
-    add $a0, $t0, $s0
-    mul $t0, $s7, $s4 # h * dy
-    add $a1, $t0, $s1
-    jal is_blocked
-    #   h++
-    bne $v0, $0, move_best_h_done
-    addi $s7, $s7, 1
-    j move_best_h_loop
-
-move_best_h_done:
-    # $s7 h, $s5 minh
-    bge $s7, $s5, move_best_no_minh
-    move $s5, $s7
-move_best_no_minh:
-    # W: $s6
-    # H: $s5
-    # dx: $s3
-    # dy: $s4
-    
-    # 36($sp) = bestA
-    # 40($sp) = bestW
-    # 44($sp) = bestH
-    # 48($sp) = bestdx
-    # 52($sp) = bestdy
-    # $t0: W * H
-    mul $t0, $s6, $s5
-    lw $t1, 36($sp)
-    # if (W * H > bestA)
-    ble $t0, $t1, move_best_no_besta
-    sw $t0, 36($sp) # bestA = W * H
-    sw $s6, 40($sp) # bestW = W
-    sw $s5, 44($sp) # bestH = H
-    sw $s3, 48($sp) # bestdx = dx
-    sw $s4, 52($sp) # bestdy = dy
-move_best_no_besta:
-    # ++i
-    addi $s6, $s6, 1
-    j move_best_i_loop
-
-move_best_i_done:
-    addi $s2, $s2, 1
-    j move_best_dir_loop
-
-move_best_dir_done:
-    # Assume bestA != 0
-    # $s0: bestdx
-    # $s1: bestdy
-    # $s2: bestW
-    # $s3: bestH
-    lw $s0, 48($sp)
-    lw $s1, 52($sp)
-    lw $s2, 40($sp)
-    lw $s3, 44($sp)
-
-    move $a0, $s0
-    move $a1, $0
-    move $a2, $s2
-    jal move_bot
-
-    move $a0, $0
-    move $a1, $s1
-    sub $a2, $s3, 1
-    jal move_bot
-
-    sub $a0, $0, $s0
-    move $a1, $0
-    move $a2, $s2
-    jal move_bot
-
-    move $a0, $0
-    sub $a1, $0, $s1
-    sub $a2, $s3, 2
-    jal move_bot
-
-    lw $ra, 0($sp)
-    lw $s0, 4($sp)
-    lw $s1, 8($sp)
-    lw $s2, 12($sp)
-    lw $s3, 16($sp)
-    lw $s4, 20($sp)
-    lw $s5, 24($sp)
-    lw $s6, 28($sp)
-    lw $s7, 32($sp)
-    add $sp, $sp, 56
-    jr $ra
 
 #### bool is_blocked(int x, int y)
 is_blocked:
@@ -284,34 +121,22 @@ is_blocked:
 is_blocked_return:
     jr $ra
 
-#### move_bot(int dx, int dy, int n)
+#### move_bot(int angle, int n)
 move_bot:
     sub $sp, $sp, 4
     sw $ra, 0($sp)
 
-    # $t0 int angle
-    beq $a0, $0, move_bot_vert
-    slt $t0, $a0, $0
-    mul $t0, $t0, 180
-    j move_bot_go
-move_bot_vert:
-    li $t0, 90
-    slt $t1, $a1, $0
-    mul $t1, $t1, 180
-    sub $t0, $t0, $t1
-
-move_bot_go:
-    sw $t0, ANGLE
+    sw $a0, ANGLE
     li $t0, 1
     sw $t0, ANGLE_CONTROL
 
     sb $0, has_timer
 
     lw $t0, TIMER
-    # $a2: 10 * n
-    mul $a2, $a2, 10000
+    # $a1: 10 * n
+    mul $t1, $a1, 10000
     # $t0: TIMER * n * 10k
-    add $t0, $t0, $a2
+    add $t0, $t0, $t1
     sw $t0, TIMER
 
     li $t0, 10
