@@ -19,5 +19,9 @@
   
   manually to get the latest spimbot and test to see if your solution works as expected. The autograder will always use the latest version of spimbot.
 
+4. Run Command:
+   `QtSpimbot -bot0 bots/part1.s -part1`
 
-4. submit your solution to PrairieLearn when you are ready :)
+   `QtSpimbot -bot0 bots/part2.s -part2`
+
+5. submit your solution to PrairieLearn when you are ready :)
