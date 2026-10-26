@@ -47,6 +47,7 @@ int main() {
 
 void move_best() {
     int loc = *BASE_LOCATION;
+    // convert to tile coordinates
     int x = (loc >> 16) / 10;
     int y = (loc & 0xFFFF) / 10;
 
@@ -54,8 +55,9 @@ void move_best() {
 
     for (int dir = 0; dir < 4; ++dir) {
         // 10 means up = 1, right = 0
-        int dx = (dir & 1) ? -1 : 1;
-        int dy = (dir & 2) ? -1 : 1;
+        int dx = (dir & 1) ? -1 : 1; // 1 - 2 * (dir & 1)
+        int dy = (dir & 2) ? -1 : 1; // 1 - 2 * ((dir >> 1) & 1);
+        
         int minh = 1000;
 
         // go left to right, and then go down, and see how far you can go before hit a wall
@@ -65,7 +67,7 @@ void move_best() {
             if (blocked(x + i * dx, y)) break;
 
             int h = 0;
-            while (!blocked(x + i * dx, y + h * y)) h++;
+            while (!blocked(x + i * dx, y + h * dy)) h++;
             if (h < minh) minh = h;
 
             int W + i;

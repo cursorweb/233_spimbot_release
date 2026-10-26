@@ -130,6 +130,88 @@ main_done_turn:
 loop:
     j       loop
 
+#### move_best()
+move_best:
+    sub $sp, $sp, 36
+    sw $ra, 0($sp)
+    sw $s0, 4($sp)
+    sw $s1, 8($sp)
+    sw $s2, 12($sp)
+    sw $s3, 16($sp)
+    sw $s4, 20($sp)
+    sw $s5, 24($sp)
+    sw $s6, 28($sp)
+    sw $s7, 32($sp)
+
+    # $s0: x
+    # $s1: y
+    # $s2: dir
+    # $s3: dx
+    # $s4: dy
+    # $s5: minh
+
+    lw $t0, BASE_LOCATION
+    # $s0 = (loc >> 16) / 10
+    srl $s0, $t0, 16
+    div $s0, $s0, 10
+    # $s1 = (loc & 0xFFFF) / 10
+    andi $s1, $t0, 0xFFFF
+    div $s1, $s1, 10
+    li $s2, 0
+
+# for (int dir = 0; dir < 4; ++dir)
+move_best_dir_loop:
+    bge $s2, 4, move_best_dir_done
+
+    # $s3 dx = 1 - 2 * (dir & 1)
+    li $s3, 1
+    andi $t0, $s2, 1
+    sll $t0, $t0, 1 # $t0 *= 2
+    sub $s3, $s3, $t0
+
+    # $s4 dy = 1 - 2 * ((dir >> 1) & 1)
+    li $s4, 1
+    srl $t0, $s2, 1
+    andi $t0, $t0, 1
+    sll $t0, $t0, 1 # $t0 *= 2
+    sub $s4, $s4, $t0
+
+    li $s5, 1000
+
+    # $s6 i, $s0 x, $s1 y
+    li $s6, 1
+move_best_i_loop:
+    bge $s6, 30, move_best_i_done
+
+    # blocked(x + i * dx, y)
+    mul $t0, $s6, $s3
+    add $a0, $s0, $t0
+    move $a1, $s1
+    # if (blocked) break
+    bne $v0, $0, move_best_i_done
+
+    
+
+    addi $s6, $s6, 1
+    j move_best_i_loop
+move_best_i_done:
+    addi $s2, $s2, 1
+    j move_best_dir_loop
+
+move_best_dir_done:
+
+    lw $ra, 0($sp)
+    lw $s0, 4($sp)
+    lw $s1, 8($sp)
+    lw $s2, 12($sp)
+    lw $s3, 16($sp)
+    lw $s4, 20($sp)
+    lw $s5, 24($sp)
+    lw $s6, 28($sp)
+    lw $s7, 32($sp)
+    add $sp, $sp, 36
+    jr $ra
+
 #### bool is_blocked(int x, int y)
 is_blocked:
     li $v0, 1
