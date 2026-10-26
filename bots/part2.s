@@ -76,10 +76,21 @@ main:
     la $t0, map
     sw $t0, SEARCH_FIELD
 
+
+
     # main function doesn't have return addy :)
+    li $s0, 0
+puzzle_loop:
+    bge $s0, 10, puzzle_done
+
     jal request_puzzle
     move $a0, $v0
     jal solve_puzzle
+
+    addi $s0, $s0, 1
+    j puzzle_loop
+
+puzzle_done:
 
     jal move_best
 
@@ -219,11 +230,6 @@ move_best_dir_done:
     lw $s2, 40($sp)
     lw $s3, 44($sp)
 
-    
-    move 
-    li $v0, PRINT_INT
-    syscall
-
     move $a0, $s0
     move $a1, $0
     move $a2, $s2
@@ -267,7 +273,8 @@ is_blocked:
     # $t0 = y * 30 + x + map
     la $t1, map
     mul $t0, $a1, 30
-    add $t0, $t1, $a0
+    add $t0, $t0, $a0
+    add $t0, $t0, $t1
 
     # $t1 = map[y][x]
     lb $t1, 0($t0)
@@ -277,22 +284,34 @@ is_blocked:
 is_blocked_return:
     jr $ra
 
-#### move_bot(int angle, int n)
+#### move_bot(int dx, int dy, int n)
 move_bot:
     sub $sp, $sp, 4
     sw $ra, 0($sp)
 
-    sw $a0, ANGLE
+    # $t0 int angle
+    beq $a0, $0, move_bot_vert
+    slt $t0, $a0, $0
+    mul $t0, $t0, 180
+    j move_bot_go
+move_bot_vert:
+    li $t0, 90
+    slt $t1, $a1, $0
+    mul $t1, $t1, 180
+    sub $t0, $t0, $t1
+
+move_bot_go:
+    sw $t0, ANGLE
     li $t0, 1
     sw $t0, ANGLE_CONTROL
 
     sb $0, has_timer
 
     lw $t0, TIMER
-    # $a0: 10 * n
-    mul $a0, $a0, 10000
+    # $a2: 10 * n
+    mul $a2, $a2, 10000
     # $t0: TIMER * n * 10k
-    add $t0, $t0, $a0
+    add $t0, $t0, $a2
     sw $t0, TIMER
 
     li $t0, 10
@@ -302,9 +321,9 @@ move_bot_loop:
     lb $t0, has_timer
     bne $t0, $0, move_bot_return
 
-    jal request_puzzle
-    move $a0, $v0
-    jal solve_puzzle
+    # jal request_puzzle
+    # move $a0, $v0
+    # jal solve_puzzle
 
     j move_bot_loop
 

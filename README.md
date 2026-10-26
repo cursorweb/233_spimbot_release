@@ -24,4 +24,9 @@
 
    `QtSpimbot -bot0 bots/part2.s -part2`
 
+   `-drawcycles 100` for slower
+   `-debug` for debug interrupts
+   `-randommap`
+   `-randompuzzle`
+
 5. submit your solution to PrairieLearn when you are ready :)

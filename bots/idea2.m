@@ -1,3 +1,10 @@
+/*
+printf:
+move $a0, xy
+move $a1, xy
+jal print_xy
+*/
+
 int main() {
     enable_interrupts();
 
@@ -72,6 +79,17 @@ bool is_blocked(int x, int y) {
 }
 
 void move_bot(int dx, int dy, int n) {
+    int angle;
+    if (dx != 0) {
+        // horizontal (0 or 180)
+        angle = (dx > 0) ? 0 : 180;
+        // angle = (dx < 0) * 180;
+    } else {
+        // vertical (-90 or 90)
+        angle = (dy > 0) ? 90 : -90;
+        // angle = 90 - 180 * (dy < 0);
+    }
+
     *ANGLE = angle;
     *ANGLE_CONTROL = 1; // absolute
 
@@ -83,8 +101,8 @@ void move_bot(int dx, int dy, int n) {
 
     while (has_timer == 0) {
         // get paint
-        int num = request_puzzle();
-        solve_puzzle(num);
+        // int num = request_puzzle();
+        // solve_puzzle(num);
     }
     *VELOCITY = 0;
 }
