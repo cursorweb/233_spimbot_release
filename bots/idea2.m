@@ -86,10 +86,9 @@ bool is_blocked(int x, int y) {
     } else if ((t & 0x20 != 0) && (t & 3) == 2) {
         // opp's base
         return true;
-    } else {
-        // you
-        return (t & 3) == 1;
     }
+    
+    return false;
 }
 
 void move_bot(int angle, int n) {

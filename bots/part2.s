@@ -263,12 +263,11 @@ is_blocked:
 
     # if ((t & 0x20 != 0) && (t & 3) == 2)
     andi $t1, $t0, 0x20
-    beq $t1, $0, is_blocked_elif_you
+    beq $t1, $0, is_blocked_else
     andi $t1, $t0, 3
     beq $t1, 2, is_blocked_return
-is_blocked_elif_you:
-    andi $t1, $t0, 3
-    seq $v0, $t1, 1
+is_blocked_else:
+    move $v0, $0
 
 is_blocked_return:
     jr $ra
