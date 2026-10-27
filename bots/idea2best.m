@@ -63,8 +63,8 @@ void move_best() {
             move_bot(s * 90, 2); // down
             move_bot(b * 90, 2); // left
 
-            // optimization: use flip to remove this
             move_bot(((s + 2) % 4) * 90, 1); // ((s + 2) & 3) * 90
+            // optimization: use flip to remove this
             // creep forward for the next tile.
             move_bot(d * 90, 2);
             dir = d;

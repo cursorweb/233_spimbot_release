@@ -79,7 +79,9 @@ main:
     la $t0, map
     sw $t0, SEARCH_FIELD
 
-
+    move $a0, $0
+    li $a1, 1
+    jal move_bot
 
     li $s0, 0
     # for (int i = 0; i < 10; ++i)
@@ -240,6 +242,7 @@ move_best_return:
 #### NOTE: NEVER EVER TOUCH THE ARGS!!
 is_blocked:
     li $v0, 1
+    # x < 0 || x >= 30 || y < 0 || y >= 30
     blt $a0, $0, is_blocked_return
     bge $a0, 30, is_blocked_return
     blt $a1, $0, is_blocked_return
@@ -252,10 +255,21 @@ is_blocked:
     add $t0, $t0, $t1
 
     # $t1 = map[y][x]
-    lb $t1, 0($t0)
-    andi $t1, $t1, 0x10
+    lb $t0, 0($t0)
     
-    sne $v0, $t1, $0
+    # if ((t & 0x10) != 0)
+    andi $t1, $t0, 0x10
+    bne $t1, $0, is_blocked_return
+
+    # if ((t & 0x20 != 0) && (t & 3) == 2)
+    andi $t1, $t0, 0x20
+    beq $t1, $0, is_blocked_elif_you
+    andi $t1, $t0, 3
+    beq $t1, 2, is_blocked_return
+is_blocked_elif_you:
+    andi $t1, $t0, 3
+    seq $v0, $t1, 1
+
 is_blocked_return:
     jr $ra
 

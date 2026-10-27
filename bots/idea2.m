@@ -15,6 +15,7 @@ int main() {
 
     // YOUR CODE GOES HERE
     map = load_map();
+    move_bot(0, 2);
     for (int i = 0; i < 500; ++i) {
         move_best();
         // each puzzle gives 4 paint which is much more than we need per move
@@ -63,8 +64,8 @@ void move_best() {
             move_bot(s * 90, 2); // down
             move_bot(b * 90, 2); // left
 
-            // optimization: use flip to remove this
             move_bot(((s + 2) % 4) * 90, 1); // ((s + 2) & 3) * 90
+            // optimization: use flip to remove this
             // creep forward for the next tile.
             move_bot(d * 90, 2);
             dir = d;
@@ -75,8 +76,20 @@ void move_best() {
 
 bool is_blocked(int x, int y) {
     if (x < 0 || x >= 30 || y < 0 || y >= 30) return true;
-    // 4th bit is wall checker
-    return (map[y * 30 + x] & 0x10) != 0;
+    int t = map[y * 30 + x];
+    /*
+    (7:6 RESERVED) (5 HOME) (4 WALL) (3:2 TRAIL) (1:0 OWNER)
+    */
+    if ((t & 0x10) != 0) {
+        // wall
+        return true;
+    } else if ((t & 0x20 != 0) && (t & 3) == 2) {
+        // opp's base
+        return true;
+    } else {
+        // you
+        return (t & 3) == 1;
+    }
 }
 
 void move_bot(int angle, int n) {
