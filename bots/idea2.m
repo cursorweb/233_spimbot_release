@@ -15,9 +15,11 @@ int main() {
 
     // YOUR CODE GOES HERE
     map = load_map();
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 500; ++i) {
         move_best();
-        solve_puzzle(request_puzzle());
+        // each puzzle gives 4 paint which is much more than we need per move
+        if (i % 2 == 0)
+            solve_puzzle(request_puzzle());
     }
 
     while (true) {
@@ -28,6 +30,12 @@ int main() {
 char dx[4] = {1, 0, -1, 0};
 char dy[4] = {0, 1, 0, -1};
 char dir = 0; // 0 1 2 3
+/*
+M 1 2    M 5 4
+M   3 -> M   3
+M 5 4    M 1 2
+*/
+char flip = 0;
 
 void move_best() {
     int x = BOT_X / 10;
@@ -46,16 +54,19 @@ void move_best() {
         M   3
         M 5 4
         */
-        if (!is_blocked(x + fx,          y + fy) &&
-            !is_blocked(x + 2*fx,        y + 2*fy) &&
-            !is_blocked(x + 2*fx + sx,   y + 2*fy + sy) &&
-            !is_blocked(x + 2*fx + 2*sx, y + 2*fy + 2*sy) &&
-            !is_blocked(x + fx + 2*sx,   y + fy + 2*sy)) {
-            move_bot(d * 90, 2); 
-            move_bot(s * 90, 2);
-            move_bot(b * 90, 2);
-            move_bot(((s + 2) % 4) * 90, 2);
-            // ((s + 2) & 3) * 90
+        if (!is_blocked(x + fx,              y + fy) &&
+            !is_blocked(x + 2 * fx,          y + 2 * fy) &&
+            !is_blocked(x + 2 * fx + sx,     y + 2 * fy + sy) &&
+            !is_blocked(x + 2 * fx + 2 * sx, y + 2 * fy + 2 * sy) &&
+            !is_blocked(x +     fx + 2 * sx, y +     fy + 2 * sy)) {
+            move_bot(d * 90, 2); // right
+            move_bot(s * 90, 2); // down
+            move_bot(b * 90, 2); // left
+
+            // optimization: use flip to remove this
+            move_bot(((s + 2) % 4) * 90, 1); // ((s + 2) & 3) * 90
+            // creep forward for the next tile.
+            move_bot(d * 90, 2);
             dir = d;
             return;
         }

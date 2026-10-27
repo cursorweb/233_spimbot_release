@@ -42,4 +42,17 @@
                          90 (south, down)
 ```
 
+```
+
+QtSpimbot -bot0 bots/part2.s -part2 -randommap -randompuzzle
+map seed: 1793063828
+puzzle seed: 1793063828
+
+# Immediately is blocked
+QtSpimbot -bot0 bots/part2.s -part2 -mapseed 1793063828
+
+# Loop around
+QtSpimbot -bot0 bots/part2.s -part2 -mapseed 1793064197
+```
+
 5. submit your solution to PrairieLearn when you are ready :)

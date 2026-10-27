@@ -84,7 +84,7 @@ main:
     li $s0, 0
     # for (int i = 0; i < 10; ++i)
 puzzle_loop:
-    bge $s0, 10, loop
+    bge $s0, 500, loop
 
     # move_best()
     jal move_best
@@ -200,7 +200,7 @@ move_best_loop:
 
     # move_bot(d * 90, 2)
     mul $a0, $a0, 90
-    li $a1, 3
+    li $a1, 2
     jal move_bot
 
     # move_bot(s * 90, 2)
@@ -223,7 +223,7 @@ move_best_loop:
     # move_bot(d * 90, 2)
     lw $a0, 8($sp)
     mul $a0, $a0, 90
-    li $a1, 1
+    li $a1, 2
     jal move_bot
 
     j move_best_return
