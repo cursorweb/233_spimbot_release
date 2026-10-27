@@ -53,6 +53,16 @@ QtSpimbot -bot0 bots/part2.s -part2 -mapseed 1793063828
 
 # Loop around
 QtSpimbot -bot0 bots/part2.s -part2 -mapseed 1793064197
+
+# Loop around 2
+QtSpimbot -bot0 bots/part2.s -part2 -mapseed 1793066286
+
+# Straight at opponent 2
+QtSpimbot -bot0 bots/part2.s -part2 -mapseed 1793066812
+
+# Self-cycle 2
+QtSpimbot -bot0 bots/part2.s -part2 -mapseed: 1793066978
+
 ```
 
 5. submit your solution to PrairieLearn when you are ready :)
